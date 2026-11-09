@@ -1,0 +1,51 @@
+name: Build Zephyr HEX
+
+on:
+  workflow_dispatch:
+    inputs:
+      exercise:
+        description: Exercise application to build
+        required: true
+        type: choice
+        default: lab1_ex1
+        options:
+          - lab1_ex1
+          - lab1_ex2
+          - lab1_ex3
+          - lab1_ex4
+          - lab1_ex5
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out application
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Zephyr and SDK
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: app
+          toolchains: arm-zephyr-eabi
+
+      - name: Build selected exercise
+        env:
+          EXERCISE: ${{ inputs.exercise }}
+        run: west build -p always -b stm32f4_disco -d "build/${EXERCISE}" "app/${EXERCISE}"
+
+      - name: Upload Intel HEX
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.exercise }}-zephyr-hex
+          path: build/${{ inputs.exercise }}/zephyr/zephyr.hex
+          if-no-files-found: error
